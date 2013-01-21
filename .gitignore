@@ -1,13 +1,42 @@
+#------------------------------------------------------------------------------
+# This is your standard .gitignore
+#------------------------------------------------------------------------------
+
+# The following is stuff that we always want to ignore:
+
+*.orig
+*.rej
+*~
+*.o
+*.pyc
+*.pyo
+*.elc
 *.class
-*.log
+.gdb_history
+.DS_Store
+.hg
+.svn
+.hgsvn
+.git
+.snprj
+.project
+.pydevproject
+.settings
+.classpath
+*.class
+\#*
+.\#*
+.unison-backup
+.idea
+.idea_modules
 
-# sbt specific
-dist/*
-target/
-lib_managed/
-src_managed/
-project/boot/
-project/plugins/project/
+#------------------------------------------------------------------------------
+# Optional, per-repository ignores
+#------------------------------------------------------------------------------
 
-# Scala-IDE specific
-.scala_dependencies
+.cache
+/project/project/
+/project/target/
+/target/
+tako.log
+/bin/
