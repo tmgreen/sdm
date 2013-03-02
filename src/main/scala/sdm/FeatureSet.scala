@@ -71,7 +71,9 @@ class FeatureSet(
   def containsMask(m: Int) = maskSet.contains(m)
 
   /**
-   * return false if feature set contains any rows of all 0's
+   * return false if feature set contains any rows of all 0's.  non-comprehensive feature sets 
+   * are simply ill-formed for the purposes of this analysis, and represent a featureset for
+   * a lesser number of cells
    */
   def isComprehensive = {
     val union = maskSet.foldLeft(0)(_ | _)
@@ -146,6 +148,10 @@ class FeatureSet(
 
 object FeatureSet {
 
+  /**
+   * if features are layed out as columns (in order defined by FeatureSet),
+   * then this function returns the resulting *rows* in this matrix
+   */
   def computeRowMasks(ncells: Int, feats: BitSet): Array[Int] = {
     val nfeats = feats.size
     val rows = Array.ofDim[Int](ncells)
