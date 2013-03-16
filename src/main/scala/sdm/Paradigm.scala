@@ -14,11 +14,11 @@ case class Paradigm(mask: Long) extends AnyVal {
 
   def apply(index: Int): Int = {
     if (index > 15) throw new IndexOutOfBoundsException(index.toString)
-    ((mask >> (index << 2)) & 0xF).toInt
+    ((mask >>> (index << 2)) & 0xF).toInt
   }
 
   def unsafeApply(index: Int): Int = {
-    ((mask >> (index << 2)) & 0xF).toInt
+    ((mask >>> (index << 2)) & 0xF).toInt
   }
 
   def length: Int = floor(log(mask) / log(16)).toInt + 1

@@ -70,4 +70,17 @@ class FeatureSetSpec extends FunSuite {
     assert(fstar2(2) === Feature(0, 1, 1, 0, 0))
   }
 
+  test("A FeatureSet should produce its subsets") {
+    val fi = new FeatureInventory(5)
+    val fs = fi.featureSet(1, 22, 29)
+    val subs = fs.subsets.toList
+    subs foreach {fs => println(fs); println } 
+    println("-------------")
+    assert(subs.length === 8)
+    val compsubs = subs filter { _.isComprehensive }
+    compsubs foreach {fs => println(fs); println } 
+    println("-------------")
+    val pars = fs.allParadigms foreach { p => println(Paradigm(p)); println }
+  }
+
 }

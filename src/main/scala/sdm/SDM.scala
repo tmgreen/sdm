@@ -2,13 +2,14 @@ package sdm
 
 import math.{ ceil, log }
 import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.Map
+import scala.collection.Set
 
-/**
- * The main command-line interface.  
- * 
- * Usage: java -jar sdm.jar SDM <ncells>
- * 
- */
+/** The main command-line interface.
+  *
+  * Usage: java -jar sdm.jar SDM <ncells>
+  *
+  */
 object SDM {
 
   def main(args: Array[String]): Unit = {
@@ -19,12 +20,14 @@ object SDM {
 
     // NOTE: ParadigmInventory is not computed yet as it is not needed 
     // until the lexemes and accHomph code is added
-    
+
     val totFeatures = inv.length
     // how many features are needed to represent paradigm with ncells
     val featuresNeeded = ceil(log(ncells + 1) / log(2)).toInt
     println(featuresNeeded + " features needed.")
-    
+
+    val mpartProfiles: Map[Set[Long], Int] = Map.empty
+
     var count = 0
     var ngood = 0
     (0 to (totFeatures - featuresNeeded)) foreach { i =>
@@ -41,6 +44,7 @@ object SDM {
                 if (checkFeatureSet(fl)) {
                   ngood += 1
                   println((i + 1, j + 1, k + 1, l + 1))
+                  tallyParadigms(fl, mpartProfiles)
                 }
               }
             } else {
@@ -48,8 +52,7 @@ object SDM {
               if (checkFeatureSet(fk)) {
                 ngood += 1
                 println((i + 1, j + 1, k + 1))
-                // val fstar = fk.andComplete
-                // val paradigm = fk.finestParadigm
+                tallyParadigms(fk, mpartProfiles)
               }
             }
           }
@@ -65,6 +68,7 @@ object SDM {
 
     println("Total featuresets considered: " + count)
     println("Total fine featuresets: " + ngood)
+    println("Total paradigm sets: " + mpartProfiles.size)
   }
 
   def checkFeatureSet(fs: FeatureSet): Boolean = {
@@ -75,4 +79,11 @@ object SDM {
     }
   }
 
+  def tallyParadigms(fs: FeatureSet, profiles: Map[Set[Long], Int]) {
+    val pars = fs.andComplete.allParadigms
+    if (profiles.contains(pars))
+      profiles(pars) += 1
+    else
+      profiles(pars) = 1
+  }
 }
