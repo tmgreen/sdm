@@ -14,7 +14,7 @@ import scala.util.Sorting
   * 0  0  0  1  0  0  0  1  1  1  0  1  1  1  1
   *
   * The order is significant, mostly to recreate output from original R code
-  * (though this is 0-based rather than 1-based).
+  * (though this implementation is 0-based rather than 1-based as in R).
   *
   */
 class FeatureInventory(val ncells: Int) extends IndexedSeq[Feature] with MatrixLike[Int] {

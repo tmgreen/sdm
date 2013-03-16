@@ -12,6 +12,7 @@ class FeatureInventorySpec extends FunSuite {
 
   test("A FeatureInventory should have features in the right order") {
     val fi = new FeatureInventory(4)
+    println(fi)
     assert(fi(0) === Feature(1, 0, 0, 0))
     assert(fi(2) === Feature(0, 0, 1, 0))
     assert(fi(4) === Feature(1, 1, 0, 0))

@@ -33,12 +33,11 @@ class FeatureSet(
    * NOTE: if there are any "zero" rows in the feature set, the resulting
    * paradigm will also contain a "0" in the corresponding cell.
    */
-  @deprecated("This code is not used but the alg. will probably get cannibalized so not deleted yet.", "0.1.0")
-  def finestParadigm: Array[Byte] = {
+  def finestParadigm: Paradigm = {
     val maxRow = (1 << inventory.ncells) - 1
     var curMax = 0
     val seen = mutable.Map.empty[Int, Int]
-    val par = Array.ofDim[Byte](inventory.ncells)
+    var par = Paradigm(0L)
     var r = 0
     rowMasks foreach { rm =>
       val slotVal = if (rm == 0) {
@@ -50,7 +49,7 @@ class FeatureSet(
         seen(rm) = curMax
         curMax
       }
-      par(r) = slotVal.asInstanceOf[Byte]
+      par = par updated(r, slotVal)
       r += 1
     }
     par

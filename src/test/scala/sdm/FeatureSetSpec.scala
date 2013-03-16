@@ -35,7 +35,6 @@ class FeatureSetSpec extends FunSuite {
     assert(fs.rowMasks === Array[Int](2, 5, 4, 6, 6))
   }
 
-  /*
   test("A FeatureSet should compute correct finestParadigm") {
     val fi = new FeatureInventory(5)
     val fs = fi.featureSet(1, 22, 29)
@@ -45,9 +44,8 @@ class FeatureSetSpec extends FunSuite {
     // 0  0  1
     // 0  1  1
     // 0  1  1
-    assert(fs.finestParadigm === Array[Byte](1, 2, 3, 4, 4))
+    assert(fs.finestParadigm === Paradigm(1, 2, 3, 4, 4))
   }
-  */
 
   test("A FeatureSet should support immutable addition with the +() method") {
     val fi = new FeatureInventory(5)

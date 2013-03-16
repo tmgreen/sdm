@@ -4,7 +4,7 @@ name := "sdm"
 
 version := "0.1.1-SNAPSHOT"
 
-scalaVersion := "2.10.0"
+scalaVersion := "2.10.1"
 
 scalacOptions ++= Seq("-unchecked", "-deprecation")
 
