@@ -1,11 +1,15 @@
 package sdm
 
+/**
+ * 0-based row x col matrix
+ */
 trait MatrixLike[T] {
 
   def nrows: Int
 
   def ncols: Int
 
+  /** 0-based with 0,0 at top left */
   def cell(row: Int, col: Int): T
 
   override def toString = {

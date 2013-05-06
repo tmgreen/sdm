@@ -2,8 +2,10 @@ package sdm
 
 import math.{ ceil, log }
 import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Map
 import scala.collection.Set
+import scala.collection.mutable
+import scala.concurrent._
+import ExecutionContext.Implicits.global
 
 /** The main command-line interface.
   *
@@ -22,68 +24,86 @@ object SDM {
     // until the lexemes and accHomph code is added
 
     val totFeatures = inv.length
-    // how many features are needed to represent paradigm with ncells
-    val featuresNeeded = ceil(log(ncells + 1) / log(2)).toInt
-    println(featuresNeeded + " features needed.")
+    val neededFeatures = inv.featuresNeeded
+    println(neededFeatures + " features needed.")
 
-    val mpartProfiles: Map[Set[Long], Int] = Map.empty
+    case class Result(count: Int, goodCount: Int, profiles: Set[Set[Long]]) {
+      override def toString = s"$count\t$goodCount\t${profiles.size}"
+    }
 
-    var count = 0
-    var ngood = 0
+    def handleSetsRootedAt(root: Int): Result = {
+      val mpartProfiles: mutable.Set[Set[Long]] = mutable.Set.empty
+      var count = 0
+      var ngood = 0
+
+      def handleFs(fs: FeatureSet) {
+        count += 1
+        if (checkFeatureSet(fs)) {
+          ngood += 1
+          tallyParadigms(fs, mpartProfiles)
+        }
+      }
+
+      inv.foreachSetRootedAt(root + 1, neededFeatures)(handleFs)
+
+      val res = Result(count, ngood, mpartProfiles)
+      println(s"$root\t$res")
+      res
+    }
+
+    val rawResults = (0 to (totFeatures - neededFeatures)).par map handleSetsRootedAt
+    
+    def reducer(r1: Result, r2: Result): Result = {
+      Result(count = r1.count + r2.count,
+        goodCount = r1.goodCount + r2.goodCount,
+        profiles = r1.profiles ++ r2.profiles)
+    }
+    
+    val finalResult = rawResults reduce reducer
+
+    /*
+    println("OLD")
+
     (0 to (totFeatures - featuresNeeded)) foreach { i =>
-      val fi = inv.featureSet(i)
+      val fi = inv.featureSet(i + 1)
       ((i + 1) to (totFeatures - featuresNeeded) + 1) foreach { j =>
-        val fj = fi + inv(j)
+        val fj = fi + inv.feature(j + 1)
         if (featuresNeeded > 2) {
           ((j + 1) to (totFeatures - featuresNeeded) + 2) foreach { k =>
-            val fk = fj + inv(k)
+            // val fk = fj + inv.feature(k + 1)
+            val fk = inv.featureSet(i + 1, j + 1, k + 1)
             if (featuresNeeded > 3) {
               ((k + 1) to (totFeatures - featuresNeeded) + 3) foreach { l =>
-                val fl = fk + inv(l)
-                count += 1
-                if (checkFeatureSet(fl)) {
-                  ngood += 1
-                  println((i + 1, j + 1, k + 1, l + 1))
-                  tallyParadigms(fl, mpartProfiles)
-                }
+                val fl = fk + inv.feature(l + 1)
+                handleFs(fl)
               }
             } else {
-              count += 1
-              if (checkFeatureSet(fk)) {
-                ngood += 1
-                println((i + 1, j + 1, k + 1))
-                tallyParadigms(fk, mpartProfiles)
-              }
+              handleFs(fk)
             }
           }
         } else {
-          count += 1
-          if (checkFeatureSet(fj)) {
-            ngood += 1
-            println((i + 1, j + 1))
-          }
+          handleFs(fj)
         }
       }
     }
+*/
 
-    println("Total featuresets considered: " + count)
-    println("Total fine featuresets: " + ngood)
-    println("Total paradigm sets: " + mpartProfiles.size)
+
+    println("Total featuresets considered: " + finalResult.count)
+    println("Total fine featuresets: " + finalResult.goodCount)
+    println("Total paradigm sets: " + finalResult.profiles.size)
   }
 
   def checkFeatureSet(fs: FeatureSet): Boolean = {
-    if (fs.isFine) {
+    if (fs.isComplete && fs.isFine) {
       true
     } else {
       false
     }
   }
 
-  def tallyParadigms(fs: FeatureSet, profiles: Map[Set[Long], Int]) {
+  def tallyParadigms(fs: FeatureSet, profiles: mutable.Set[Set[Long]]) {
     val pars = fs.andComplete.allParadigms
-    if (profiles.contains(pars))
-      profiles(pars) += 1
-    else
-      profiles(pars) = 1
+    profiles add pars
   }
 }

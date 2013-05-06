@@ -1,6 +1,7 @@
 package sdm
 
 import collection._
+import scala.math.{ ceil, log }
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Sorting
 
@@ -8,64 +9,120 @@ import scala.util.Sorting
   *
   * 15 total features (each feature must contain at least one 1):
   *
-  * 1  0  0  0  1  1  0  1  0  0  1  1  1  0  1
-  * 0  1  0  0  1  0  1  0  1  0  1  1  0  1  1
-  * 0  0  1  0  0  1  1  0  0  1  1  0  1  1  1
-  * 0  0  0  1  0  0  0  1  1  1  0  1  1  1  1
+  * 1  0  1  0  1  0  1  0  1  0  1  0  1  0  1
+  * 0  1  1  0  0  1  1  0  0  1  1  0  0  1  1
+  * 0  0  0  1  1  1  1  0  0  0  0  1  1  1  1
+  * 0  0  0  0  0  0  0  1  1  1  1  1  1  1  1
   *
-  * The order is significant, mostly to recreate output from original R code
-  * (though this implementation is 0-based rather than 1-based as in R).
+  * The order is standard binary, with least significant bit at *top*.
+  *
+  * NOTE: this order no longer recreates the  output from Uli's original R code.
+  * A feature can now be defined simply as a number, and this number *is* the
+  * binary specification of each cell (that is, we have unified the mask with
+  * the index).
   *
   */
-class FeatureInventory(val ncells: Int) extends IndexedSeq[Feature] with MatrixLike[Int] {
+case class FeatureInventory(ncells: Int) extends MatrixLike[Int] {
 
   /** A mask is a column of bits representing a single feature.  Each feature contains one digit
     * position for each cell, so if ncells = 3, each feature mask is three binary digits.  In this
     * case, maxMask is thus 2^^3 - 1, or binary 111
     */
-  val maxMask = (1 << ncells) - 1
 
-  /** Build index for retrieval of nth (0-based) Feature in this inventory, according to the stable
-    * natural order defined by Feature
-    */
-  val index: Array[Feature] = {
-    val features = (1 to maxMask).toArray map { Feature.fromMask(ncells, _) }
-    Sorting.quickSort(features)
-    features
+  final val length = FeatureInventory.maxMask(ncells)
+
+  override final def nrows = ncells
+
+  override final def ncols = length
+
+  /** for MatrixLike impl */
+  override def cell(row: Int, col: Int): Int = Feature(ncells, col + 1).cell(row)
+
+  /** min number of features needed to full paradigm with `ncells` distinct cells.  
+   *  In other words, how many binary digits do you need to represent the number `ncells'?
+   */
+  def featuresNeeded = ceil(log(ncells + 1) / log(2)).toInt
+
+  def feature(mask: Int) = Feature(ncells, mask)
+
+  def featureSet(masks: Int*) = {
+    val feats = masks map { cm => Feature(ncells, cm) }
+    FeatureSet(ncells, feats)
   }
 
-  /** in addition to the position-based index above, this is a mask-based index
-    */
-  lazy val mask2feature: Map[Int, Feature] = {
-    (index map (f => (f.mask -> f))).toMap
+  def featureSets(setSize: Int): Iterator[FeatureSet] = {
+    setSize match {
+      case 2 => {
+        (for {
+          i <- 1 to length - 1
+          fi = featureSet(i)
+          j <- i + 1 to length
+          fj = fi + feature(j)
+        } yield fj)(breakOut)
+      }
+      case 3 => {
+        (for {
+          i <- 1 to length - 2
+          fi = featureSet(i)
+          j <- i + 1 to length - 1
+          fj = fi + feature(j)
+          k <- j + 1 to length
+          fk = fj + feature(k)
+        } yield fk)(breakOut)
+      }
+      case 4 => {
+        (for {
+          i <- 1 to length - 3
+          fi = featureSet(i)
+          j <- i + 1 to length - 2
+          fj = fi + feature(j)
+          k <- j + 1 to length - 1
+          fk = fj + feature(k)
+          l <- k + 1 to length
+          fl = fk + feature(l)
+        } yield fl)(breakOut)
+      }
+      case _ =>
+        Iterator.empty
+    }
   }
 
-  /** lookup a single column
-    */
-  override def apply(col: Int) = index(col)
-
-  override def length = index.length
-
-  override def nrows = ncells
-
-  override def ncols = length
-
-  override def cell(row: Int, col: Int): Int = index(col)(row)
-
-  def featureForMask(mask: Int) = mask2feature(mask)
-
-  /** What feature results from AND'ing together two features?
-    */
-  def and(f1: Feature, f2: Feature) = featureForMask(f1.mask & f2.mask)
-
-  /** create a new FeatureSet as a series of numeric indices into this master
-    * feature inventory matrix.  E.g. this.featureSet(0,1) would create a
-    * FeatureSet with 2 features, corresponding to the first two columns
-    * in the feature matrix of this inventory.
-    */
-  def featureSet(indices: Int*) = {
-    val masks = indices map (index(_).mask)
-    new FeatureSet(this, masks: _*)
+  // (1,2,3), (1,2,4), (1,2,5), (1,3,4), (1,3,5), (1,4,5)
+  def foreachSetRootedAt(root: Int, setSize: Int)(f: (FeatureSet => Unit)) {
+    require(root <= length - setSize + 1)
+    val rootFs = featureSet(root)
+    setSize match {
+      case 2 => {
+        for {
+          i <- root + 1 to length
+          fi = rootFs + feature(i)
+        } f(fi)
+      }
+      case 3 => {
+        for {
+          i <- root + 1 to length - 1
+          fi = rootFs + feature(i)
+          j <- i + 1 to length
+          fj = fi + feature(j)
+        } f(fj)
+      }
+      case 4 => {
+        for {
+          i <- root + 1 to length - 2
+          fi = rootFs + feature(i)
+          j <- i + 1 to length - 1
+          fj = fi + feature(j)
+          k <- j + 1 to length
+          fk = fj + feature(k)
+        } f(fk)
+      }
+    }
   }
+
+}
+
+object FeatureInventory {
+
+  def maxMask(ncells: Int): Int = (1 << ncells) - 1
 
 }

@@ -3,65 +3,45 @@ package sdm
 import scala.collection._
 import scala.collection.mutable.ConcurrentMap
 import scala.math.Ordered
+import Feature._
 
-/**
- * Feature is a very shallow layer over a simple 32-bit mask.  Therefore, 
- * the max value for <code>ncells</code> is 31 (maybe 32 but could get weird 
- * due to the Int sign bit).
- */
-class Feature(val ncells: Int, val mask: Int) extends Ordered[Feature] with IndexedSeq[Int] {
+/** Feature has two components, a length and mask.  The length is used to 
+  * limit the width of the mask that is used for the actual feature cells.  Because
+  * mask is a 32 bit int, the length is currently limited to 31 (which shouldn't
+  * be any problem as the rest of SDM will barf long before that.
+  */
+case class Feature (length: Int, mask: Int) {
 
-  override def apply(i: Int) = {
-    if (i >= ncells) throw new IndexOutOfBoundsException(i.toString)
-    (mask >>> i) & 1
+  // 0-based left-to-right cell indexing
+  def cell(i: Int) = {
+    (mask >>> (length - i - 1)) & 1
   }
 
-  /**
-   * For faster indexed lookup (avoids IOOBE check above)
-   */
-  def unsafeApply(i: Int) = {
-    (mask >>> i) & 1
+  /** What feature results from AND'ing together two features?
+    */
+  def &(f2: Feature) = new Feature(length, mask & f2.mask)
+
+  def toBitString = {
+    val unpadded = mask.toBinaryString
+    val padding = "0" * (length - unpadded.length)
+    padding + unpadded
   }
 
-  /**
-   * Warning: this is not the same "length" as used in the SDM literature: it is just
-   * the number of cells.  This method is required to implement IndexedSeq.
-   */
-  override def length = ncells
-
-  /**
-   * count of bits set (cf. SDM "length")
-   */
-  val bitsSet = sum
-
-  override def hashCode = mask
-
-  override def equals(o: Any) = o match {
-    case f: Feature =>
-      f.eq(this) ||
-        (f.canEqual(this) && ncells == f.ncells && mask == f.mask)
-    case _ => false
-  }
-
-  override def canEqual(o: Any): Boolean = o.isInstanceOf[Feature]
-
-  /**
-   * implementation of Ordered[Feature]
-   */
-  override def compare(that: Feature) = {
-    val deltaLen = bitsSet - that.bitsSet
-    if (deltaLen == 0)
-      mask - that.mask
-    else
-      deltaLen
-  }
-
+  def asInt = mask
+  
 }
 
 object Feature {
 
-  def apply(bits: Int*): Feature = {
-    var i = 0
+  def apply(bitString: String): Feature = {
+    val nums = bitString map (c => c.toString.toInt)
+    fromBits(nums: _*)
+  }
+
+  def fromBits(bits: Int*): Feature = {
+    if (bits.length > 31)
+      throw new IndexOutOfBoundsException("Maximum feature length is 31 cells")
+    var i = bits.length - 1
     var mask = 0
     bits foreach { b =>
       b match {
@@ -71,13 +51,9 @@ object Feature {
         case _ =>
           throw new Exception(getClass().getSimpleName() + " may contain only 0s and 1s")
       }
-      i += 1
+      i -= 1
     }
-    new Feature(bits.length, mask)
-  }
-
-  def fromMask(size: Int, mask: Int): Feature = {
-    new Feature(size, mask)
+    Feature(bits.length, mask)
   }
 
 }

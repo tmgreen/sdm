@@ -1,5 +1,7 @@
 package sdm
 
+import scala.collection.breakOut
+
 /** The full inventory of paradigms possible given a number of cells.  Each paradigm is
   * represented internally as a Long mask (exposed via a Paradigm value class wrapper).
   * Due to space constraints, the maximum number of cells/lexemes in a given paradigm is 15,
@@ -11,13 +13,18 @@ class ParadigmInventory(val ncells: Int) extends MatrixLike[Int] with IndexedSeq
 
   require(ncells <= 127)
 
-  val matrix = {
+  private[this] val (matrix, index) = {
     // temporary tree structure used for computing all possible paradigms
     val tree = new PTree()
     val m = Array.ofDim[Long](tree.size)
     tree.fillMatrix(m)
-    m
+    val ix: Map[Long, Int] = m.zipWithIndex.toMap
+    (m, ix)
   }
+
+  /** Return integer index of a given paradigm within its inventory
+    */
+  def indexOf(par: Paradigm): Int = index(par.mask)
 
   /** IndexedSeq[Paradigm] impl
     */
@@ -69,7 +76,7 @@ class ParadigmInventory(val ncells: Int) extends MatrixLike[Int] with IndexedSeq
 
     private[ParadigmInventory] def fillMatrix(m: Array[Long], col: Int = 0): Unit = {
       children match {
-        case None => fillCol(m(col))
+        case None => m(col) = fillCol(m(col))
         case Some(kids) => {
           var offset = 0
           for (k <- kids) {
@@ -80,9 +87,12 @@ class ParadigmInventory(val ncells: Int) extends MatrixLike[Int] with IndexedSeq
       }
     }
 
-    private[PTree] def fillCol(ar: Long): Unit = {
+    private[PTree] def fillCol(ar: Long): Long = {
       val newAr = Paradigm(ar) updated (level - 1, value)
-      parent foreach (_.fillCol(newAr.mask))
+      parent match {
+        case Some(p) => p.fillCol(newAr.mask)
+        case _ => newAr.mask
+      }
     }
 
     override def toString = {

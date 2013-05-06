@@ -43,7 +43,7 @@ object Paradigm {
   def apply(cells: Int*): Paradigm = {
     require(cells.length < 16, "Max supported number of cells in a Paradigm is 15")
     var mask: Long = 0
-    cells.reverse foreach { b =>
+    cells.reverseIterator foreach { b =>
       require(b < 16, "Max supported number of cells in a Paradigm is 15")
       mask = (mask << 4) + b
     }
