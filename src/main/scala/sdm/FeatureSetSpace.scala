@@ -1,14 +1,14 @@
 package sdm
 
-import scala.annotation.tailrec
 import scala.collection.SortedSet
 
-/** A `FeatureSetSpace` is a device used for efficient generation of all possible
-  * feature sets for a given theory.  It is defined by a `Theory` and a (possibly
+/** A `FeatureSetSpace` is a device used for efficient generation and concurrent
+  * processing of all possible feature sets for a given theory.  It is defined by 
+  * a `Theory` and a (possibly
   * empty) set of "root" Feature masks `rootMasks` which form the "seed" for all
   * `FeatureSet`s in the space.  `Theory.featuresNeeded` dictates how many `Feature`s
   * are needed in order to realize a complete paradigm given the number of cells
-  * in the theory.  `rootMasks` will normally be smaller than featuresNeeded (it
+  * in the theory.  `rootMasks` will normally be smaller than `featuresNeeded` (it
   * wouldn't strictly be an error for rootMasks to contain all `featuresNeeded`
   * elements but it would make the `FeatureSetSpace` useless).
   *
@@ -74,7 +74,7 @@ case class FeatureSetSpace(rootMasks: SortedSet[Int])(implicit theory: Theory) e
 object FeatureSetSpace {
 
   def apply(mask: Int)(implicit theory: Theory) = new FeatureSetSpace(SortedSet(mask))
-  
+
   /** contains all features in the available inventory */
   def universe(implicit theory: Theory) = new FeatureSetSpace(SortedSet[Int]())
 
