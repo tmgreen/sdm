@@ -1,8 +1,8 @@
 package sdm
 
-import scala.collection.Set
-import scala.collection.mutable
 import scala.concurrent._
+import scala.concurrent.duration.Duration
+import scala.concurrent.ExecutionContext.Implicits.global
 
 /** The main command-line interface.
   *
@@ -22,43 +22,10 @@ object SDM {
     println(s"$featuresNeeded features needed for the $ncells cell case.")
     val allStartTime = System.currentTimeMillis()
 
-    case class Result(count: Int, goodCount: Int, profiles: Set[Set[Long]], elapsedMillis: Int) {
-      override def toString = s"$count\t$goodCount\t${profiles.size}\t${timeString(elapsedMillis)}"
+    val fsSpaces = (1 to (totalFeatures - featuresNeeded + 1)) map { mask => FeatureSetSpace(mask) }
 
-      def +(r2: Result): Result =
-        Result(
-          count = count + r2.count,
-          goodCount = goodCount + r2.goodCount,
-          profiles = profiles ++ r2.profiles,
-          elapsedMillis = elapsedMillis + r2.elapsedMillis)
-    }
+    val finalResult = resultForSpacesUsingFutures(fsSpaces)
 
-    def handleSpace(rootMask: Int): Result = {
-      val startTime = System.currentTimeMillis()
-      val mpartProfiles: mutable.Set[Set[Long]] = mutable.Set.empty
-      var count = 0
-      var ngood = 0
-
-      def handleFs(fs: FeatureSet) {
-        count += 1
-        if (fs.isFine) {
-          ngood += 1
-          tallyParadigms(fs, mpartProfiles)
-        }
-      }
-
-      val space = FeatureSetSpace(rootMask)
-      space.foreach(handleFs)
-
-      val elapsed = System.currentTimeMillis() - startTime
-      val res = Result(count, ngood, mpartProfiles, elapsed.toInt)
-      println(s"$rootMask\t$res")
-      res
-    }
-
-    def reducer(r1: Result, r2: Result): Result = { r1 + r2 }
-
-    val finalResult = (1 to (totalFeatures - featuresNeeded + 1)).par map handleSpace reduce reducer
     val allElapsedMillis = System.currentTimeMillis() - allStartTime
 
     println("Total featuresets considered: " + finalResult.count)
@@ -68,18 +35,33 @@ object SDM {
     println("Total elapsed actual time: " + timeString(allElapsedMillis))
   }
 
-  def timeString(millis: Long): String = {
-    if (millis < 2000) {
-      millis + "ms"
-    } else if (millis < 120000) {
-      (millis / 1000) + "s"
-    } else {
-      (millis / 60000) + "m"
-    }
+  /** combine two SdmResults into one */
+  def reduceResults(r1: SdmResult, r2: SdmResult): SdmResult = { r1 + r2 }
+
+  /** Method using collection.par to implement the parallelization
+    */
+  def resultForSpacesUsingPar(fsSpaces: Iterable[FeatureSetSpace]): SdmResult = {
+    fsSpaces.par map { fsSpace =>
+      val result = computeBulkResult(fsSpace)
+      println(s"$fsSpace\t$result")
+      result
+    } reduce (reduceResults)
   }
 
-  def tallyParadigms(fs: FeatureSet, profiles: mutable.Set[Set[Long]]) {
-    val pars = fs.andComplete.allParadigms
-    profiles add pars
+  /** Method using Futures to implement the parallelization.  Though more complex,
+    * hopefully this will even out the processor load a bit better.
+    */
+  def resultForSpacesUsingFutures(fsSpaces: Iterable[FeatureSetSpace]): SdmResult = {
+    val futures = fsSpaces map { fsSpace =>
+      future {
+        val result = computeBulkResult(fsSpace)
+        println(s"$fsSpace\t$result")
+        result
+      }
+    }
+    val futureResult = Future.reduce(futures)(reduceResults)
+    // block till all futures have returned
+    Await.result(futureResult, Duration.Inf)
   }
+
 }

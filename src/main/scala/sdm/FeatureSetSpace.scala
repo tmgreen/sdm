@@ -69,6 +69,10 @@ case class FeatureSetSpace(rootMasks: SortedSet[Int])(implicit theory: Theory) e
     FeatureSet(feats: _*)
   }
 
+  override def toString = {
+    rootMasks.mkString(".") + ("._" * featuresToAdd)
+  }
+  
 }
 
 object FeatureSetSpace {
