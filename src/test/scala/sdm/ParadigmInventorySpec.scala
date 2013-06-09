@@ -4,7 +4,7 @@ import org.scalatest.FunSuite
 
 class ParadigmInventorySpec extends FunSuite {
 
-  test("A ParadigmInventory should contain the right number of features for its cell count") {
+  test("A ParadigmInventory should contain the right number of Paradigms for its cell count") {
     val lengths = (1 to 12) map { n =>
       val l = new ParadigmInventory(n).length
       println(f"$n%2d cells --> $l paradigms")

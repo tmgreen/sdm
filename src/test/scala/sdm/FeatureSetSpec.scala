@@ -4,15 +4,14 @@ import org.scalatest.FunSuite
 
 class FeatureSetSpec extends FunSuite {
 
-  test("A FeatureSet should be creatable from a FeatureInventory") {
-    val fi = new FeatureInventory(5)
-    val fs = fi.featureSet(1, 2, 31)
-    assert(fs(0) === Feature("00001"))
-    assert(fs(1) === Feature("00010"))
-    assert(fs(2) === Feature("11111"))
+  test("A FeatureSet should be able to be empty") {
+    val th = Theory(5)
+    val fs = th.featureSet()
+    assert(fs.length === 0)
   }
 
   test("A FeatureSet should yield F* with the andComplete() method") {
+    implicit val th = Theory(5)
     val fs = FeatureSet(
       Feature("00001"),
       Feature("10110"),
@@ -24,6 +23,7 @@ class FeatureSetSpec extends FunSuite {
   }
 
   test("A FeatureSet should compute correct rowMasks 1") {
+    implicit val th = Theory(2)
     val fs = FeatureSet(
       Feature("01"),
       Feature("10"))
@@ -38,8 +38,8 @@ class FeatureSetSpec extends FunSuite {
   }
 
   test("FeatureSet addition should work") {
-    val fi = new FeatureInventory(2)
-    val fs = fi.featureSet(1)
+    val th = Theory(2)
+    val fs = th.featureSet(1)
     println(fs)
     // fs should be:
     // 0
@@ -50,7 +50,7 @@ class FeatureSetSpec extends FunSuite {
     assert(fs.isComplete === false)
     assert(fs.isFine === false)
 
-    val fs2 = fs + fi.feature(2)
+    val fs2 = fs + Feature(2)
     println(fs2)
     // fs2 should be:
     // 0  1  
@@ -62,6 +62,7 @@ class FeatureSetSpec extends FunSuite {
   }
 
   test("A FeatureSet should compute correct rowMasks 2") {
+    implicit val th = Theory(5)
     val fs = FeatureSet(
       Feature("01000"),
       Feature("01111"),
@@ -82,6 +83,7 @@ class FeatureSetSpec extends FunSuite {
   }
 
   test("A FeatureSet should compute correct finestParadigm") {
+    implicit val th = Theory(5)
     val fs = FeatureSet(
       Feature("01000"),
       Feature("01111"),
@@ -100,8 +102,8 @@ class FeatureSetSpec extends FunSuite {
   }
 
   test("A FeatureSet should support immutable addition with the + operator") {
-    val fi = new FeatureInventory(5)
-    val fs = fi.featureSet(1, 22, 29) // 00001, 10110, 11101
+    val th = Theory(5)
+    val fs = th.featureSet(1, 22, 29) // 00001, 10110, 11101
     println(fs)
     val fs2 = fs + Feature("11100")
     assert(fs2 contains Feature("11100"))
@@ -116,8 +118,8 @@ class FeatureSetSpec extends FunSuite {
   }
 
   test("A FeatureSet should support incremental F* computation with the addAndComplete() method") {
-    val fi = new FeatureInventory(5)
-    val fs = fi.featureSet(1, 22, 29) // 00001, 10110, 11101
+    val th = Theory(5)
+    val fs = th.featureSet(1, 22, 29) // 00001, 10110, 11101
     val fstar = fs.andComplete
     // fstar is:
     // 0  1  1  1
@@ -138,8 +140,8 @@ class FeatureSetSpec extends FunSuite {
   }
 
   test("A FeatureSet should produce its subsets") {
-    val fi = new FeatureInventory(5)
-    val fs = fi.featureSet(1, 22, 29) // 00001, 10110, 11101
+    val th = Theory(5)
+    val fs = th.featureSet(1, 22, 29) // 00001, 10110, 11101
     val subs = fs.subsets.toList
     // subs foreach { fs => println(fs); println }
     // println("-------------")
