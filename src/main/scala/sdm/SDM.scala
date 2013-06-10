@@ -42,7 +42,7 @@ object SDM {
         resultForSpacesUsingFileSystem(fsSpaces, SdmFs(path))
       }
     }
-    
+
     val allElapsedMillis = System.currentTimeMillis() - allStartTime
 
     println("Total featuresets considered: " + finalResult.count)
@@ -67,6 +67,8 @@ object SDM {
         if (!store.isDone(fsSpace)) {
           val result = computeAndLogBulkResult(fsSpace)
           store.storeResults(fsSpace, result)
+        } else {
+          println(s"Found existing results for $fsSpace")
         }
         fsSpace
       }
@@ -75,6 +77,7 @@ object SDM {
     // block till all futures have returned
     val finishedSpaces = Await.result(futures, Duration.Inf)
 
+    println(s"Collating results for ${finishedSpaces.size} spaces...")
     // now read results from files, sequentially so not all in mem at once
     finishedSpaces flatMap { fsSpace =>
       assert(store.isDone(fsSpace), s"Results for $fsSpace expected but not found")
