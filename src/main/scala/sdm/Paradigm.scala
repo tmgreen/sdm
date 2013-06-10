@@ -19,7 +19,7 @@ case class Paradigm(mask: Long) extends AnyVal {
   }
 
   private[sdm] final def unsafeApply(index: Int): Int = {
-    ((mask >>> shiftBitsForIndex(index)) & 0xF).toInt
+    ((mask >>> shiftBitsForIndex(index)) & 0xFL).toInt
   }
 
   /** number of cells in this Paradigm */
@@ -28,15 +28,14 @@ case class Paradigm(mask: Long) extends AnyVal {
   /** return new Paradigm with new value `x` at index `i` */
   def updated(i: Int, x: Int): Paradigm = {
     val shiftAmount = shiftBitsForIndex(i)
-    Paradigm((~(0xF << shiftAmount) & mask) | (x << shiftAmount))
+    Paradigm((~(0xFL << shiftAmount) & mask) | (x.toLong << shiftAmount))
   }
 
   def toSeq: IndexedSeq[Int] =
     (0 until length) map unsafeApply
 
-  override def toString: String = {
-    "Paradigm(" + toSeq.mkString(", ") + ")"
-  }
+  override def toString: String = this.toSeq.mkString("{", ",", "}")
+
 }
 
 object Paradigm {

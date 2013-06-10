@@ -82,6 +82,7 @@ class FeatureSet private[FeatureSet] (val maskSet: BitSet, rowMasks: Array[Int])
       par = par updated (r, slotVal)
       r += 1
     }
+    assert(par.length == ncells, s"finestParadigm() created paradigm of wrong length: $par")
     par
   }
 

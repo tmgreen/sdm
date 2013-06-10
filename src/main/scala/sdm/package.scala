@@ -10,6 +10,7 @@ package object sdm {
 
     def tallyParadigms(fs: FeatureSet, profiles: mutable.Set[Set[Long]]) {
       val pars = fs.andComplete.allParadigms
+      assert(!(pars contains 1), "Bug: paradigms should not contain {1}")
       profiles add pars
     }
     
